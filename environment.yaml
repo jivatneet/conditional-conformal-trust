@@ -1,0 +1,29 @@
+name: conformal-trust
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - numpy
+  - numpy-base
+  - matplotlib
+  - matplotlib-base
+  - pandas
+  - pyarrow
+  - pyyaml
+  - requests
+  - seaborn
+  - scipy
+  - scikit-learn
+  - tqdm
+  - faiss
+  - faiss-gpu
+  - pip:
+      - cvxpy
+      - mosek
+      - statsmodels==0.14.2
+      - torch==2.2.0
+      - torchvision==0.17.0

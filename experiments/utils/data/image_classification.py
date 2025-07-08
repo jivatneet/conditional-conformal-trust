@@ -9,8 +9,6 @@
 import os
 import subprocess
 import pandas as pd
-import skimage
-from skimage import io
 from PIL import Image
 from torchvision import datasets
 from torch.utils.data import Dataset
@@ -40,6 +38,39 @@ class LT_Dataset(Dataset):
             sample = self.transform(sample)
 
         return sample, label
+
+class SkinDataset(Dataset):
+    """
+    Code for this class is taken from https://github.com/mattgroh/fitzpatrick17k and modified. The code has the Creative Commons License.
+    """
+    def __init__(self, csv_file, root_dir, transform=None):
+        """
+        Args:
+            csv_file (string): Path to the csv file with annotations.
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        self.df = pd.read_csv(csv_file)
+        self.root_dir = root_dir
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, idx):
+        img_name = os.path.join(self.root_dir,
+                                self.df.loc[self.df.index[idx], 'hasher'] + '.jpg')
+        image = io.imread(img_name)
+        if(len(image.shape) < 3):
+            image = skimage.color.gray2rgb(image)
+
+        label = self.df.loc[self.df.index[idx], 'low']
+
+        if self.transform is not None:
+            image = self.transform(image)
+
+        return image, label
 
     
 def get_image_dataset(dataset_name, preprocess=None):
