@@ -14,6 +14,10 @@ dependencies:
   - pandas
   - pyarrow
   - pyyaml
+  - pytorch 
+  - pytorch-cuda=12.1
+  - torchvision
+  - torchaudio 
   - requests
   - seaborn
   - scipy
@@ -25,5 +29,3 @@ dependencies:
       - cvxpy
       - mosek
       - statsmodels==0.14.2
-      - torch==2.2.0
-      - torchvision==0.17.0
