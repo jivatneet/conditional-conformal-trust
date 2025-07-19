@@ -1,4 +1,7 @@
 import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__)))  
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  
+
 import argparse
 import numpy as np
 import pandas as pd
@@ -8,26 +11,20 @@ from random import sample
 from scipy.special import softmax
 from sklearn.preprocessing import PolynomialFeatures
 
-from utils.conformal import compute_conformity_score, compute_conformity_score_softmax, compute_conformity_score_aps, compute_conformity_score_raps, compute_sets_split, compute_sets_cond
+from conformal import compute_conformity_score, compute_conformity_score_softmax, compute_conformity_score_aps, compute_conformity_score_raps, compute_sets_split, compute_sets_cond
 from utils.model import get_image_classifier, split_test
 from utils.data import get_image_dataset
 from utils.binning import get_bin_edges
 
-os.environ["DATA_DIR"] = '../data'
-os.environ["CACHE_DIR"] = '/path/to/pretrained_model'
-os.environ["TRUST_SCORES_DIR"] = '../trust_scores'
+os.environ["DATA_DIR"] = 'data'
+os.environ["CACHE_DIR"] = '~/.cache' # path where pretrained models are downloaded
+os.environ["TRUST_SCORES_DIR"] = 'trust_scores'
 
 def main(args):
 
     assert torch.cuda.is_available()
     device = torch.device("cuda")
     print("Using device:", device)
-
-    print('SEED:', args.seed)
-    print('using binning:', args.use_binning)
-    print('score function:', args.score_fn)
-    print('randomized score:', args.scores_randomize)
-    print('temp scaling:', args.temp_scaling)
 
     # load dataset and precomputed features
     model, preprocess = get_image_classifier(args.model_name, device=device)
@@ -110,7 +107,6 @@ def main(args):
             test_trust_phi[:, bin_ind] = np.where(trust_mask, 1, test_trust_phi[:, bin_ind])
 
         test_phi = np.concatenate([test_conf_phi, test_trust_phi], axis=1)
-        print('phi shape:', calib_phi.shape, test_phi.shape)
 
         # save subgrouping
         np.save(os.path.join(results_dir, f"{res_fname}_calib_phi.npy"), calib_phi)
@@ -122,9 +118,7 @@ def main(args):
         np.save(os.path.join(results_dir, f"{res_fname}_set_sizes_cond.npy"), set_sizes_cond)
 
     else:
-        print('no binning')
         for degree in args.degree:
-            print('degree:', degree)
 
             res_fname_degree = f"alpha_{args.alpha}_score_fn_{args.score_fn}_scores_randomize_{args.scores_randomize}_temp_scale_{args.temp_scaling}_use_binning_{args.use_binning}_seed_{args.seed}_degree_{degree}"
         
@@ -142,8 +136,6 @@ def main(args):
             poly = PolynomialFeatures(degree)
             test_phi = poly.fit_transform(test_phi)
 
-            print('phi shape:', calib_phi.shape, test_phi.shape)
-
             # save subgrouping
             np.save(os.path.join(results_dir, f"{res_fname_degree}_calib_phi.npy"), calib_phi)
             np.save(os.path.join(results_dir, f"{res_fname_degree}_test_phi.npy"), test_phi)
@@ -159,7 +151,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run conditional conformal calibration')
     parser.add_argument("--dataset_name", type=str)
     parser.add_argument("--model_name", type=str)
-    parser.add_argument("--features_dir", type=str, default="/path/to/precomputed/features")
+    parser.add_argument("--features_dir", type=str, default="./features") 
     parser.add_argument("--output_dir", type=str, default="./outputs")
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--seed", type=int, default=1, help="random seed")
@@ -176,7 +168,7 @@ if __name__ == '__main__':
     parser.add_argument("--bin_strategy", type=str, default="quantile", choices=['quantile', 'uniform'])
 
     # polynomial features
-    parser.add_argument("--degree", metavar='N', type=int, nargs='*', default=[1, 2, 3, 4, 5, 6], help='maximal degree of the polynomial features')
+    parser.add_argument("--degree", metavar='N', type=int, nargs='*', default=[5], help='maximal degree of the polynomial features')
 
     # cvxpy
     parser.add_argument("--solver", type=str, default="mosek", help="solver for cvxpy")

@@ -4,6 +4,7 @@ python run_condconf.py \
     --dataset_name fitzpatrick17k \
     --model_name resnet18_fitzpatrick17k \
     --seed $SEED \
+    --temp_scaling \
     --score_fn aps
 done
 

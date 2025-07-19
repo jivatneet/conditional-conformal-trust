@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Base directories
-FEATURES_DIR="/path/to/features"
+FEATURES_DIR="../features"
 
 # ImageNet 
 python compute_trust_score.py \

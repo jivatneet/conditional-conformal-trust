@@ -4,5 +4,6 @@ python run_condconf.py \
     --dataset_name places_lt \
     --model_name resnet152_places_lt \
     --seed $SEED \
+    --temp_scaling \
     --score_fn aps
 done

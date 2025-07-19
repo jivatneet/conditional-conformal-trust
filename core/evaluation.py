@@ -1,8 +1,10 @@
 """
 Functions for aggregating results and computing evaluation metrics
 """
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__)))  
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  
 
-import os
 import pandas as pd
 import numpy as np
 import faiss
@@ -168,40 +170,12 @@ def compute_2d_set_size_array(set_sizes_array, subgrouping, num_bins_conf, num_b
 def compute_worst_coverage(coverages_array, subgrouping):
     worst_cov = 1.
     for i in np.unique(subgrouping):
-        # print('group index: ', i, 'num samples = ', np.sum(subgrouping == i), 'cov = ', np.mean(coverages_array[subgrouping == i]))
         worst_cov = min(worst_cov, np.mean(coverages_array[subgrouping == i]))
 
     return worst_cov
 
-def compute_worst_coverage_regions(coverages_array, euclidean_balls):
-    worst_cov = 1.
-    for i in range(len(euclidean_balls)):
-        worst_cov = min(worst_cov, np.mean(coverages_array[euclidean_balls[i]]))
-
-    return worst_cov
-
-def compute_worst_coverage_gap_high_label(coverages_array, subgrouping, labels_high):
-    worst_cov_gap = 0.
-    for i in np.unique(subgrouping):
-        cov_gap = 0
-        cov_labels_high = []
-        for high_label in range(2):
-            temp_df = (subgrouping == i) & (labels_high == high_label)
-            cov_gap += np.abs(1 - np.mean(coverages_array[temp_df]))
-            cov_labels_high.append(np.mean(coverages_array[temp_df]))
-        worst_cov_gap = max(worst_cov_gap, np.abs(cov_labels_high[0] - cov_labels_high[1]))
-
-    return worst_cov_gap
-
 def compute_avg_set_size(sizes_array):
     return np.mean(sizes_array)
-
-def compute_rank_stratified_set_size(sizes_array, ranks_subgrouping):
-    avg_set_sizes = []
-    for i in np.unique(ranks_subgrouping):
-        avg_set_sizes.append(np.mean(sizes_array[ranks_subgrouping == i]))
-
-    return avg_set_sizes
 
 def fit_binwise_quantile(scores_cal, cal_subgrouping, alpha):
     qhat_dict = {}
@@ -234,11 +208,6 @@ def initialize_metrics_dict(methods, num_rank_bins=4):
             'class_cov_gap': [],
             'avg_set_size': [],
             'marginal_cov': [],
-            'set_size_top1_acc_auc': [],
-            'set_size_top2_acc_auc': [],
-            'set_size_top3_acc_auc': [],
-            'set_size_top4_acc_auc': [],
-            'set_size_top5_acc_auc': [],
         } 
         
     return metrics
@@ -249,7 +218,6 @@ def initialize_metrics_dict_fitzpatrick(methods):
         metrics[method] = {
             'fitzpatrick_scale_cov_gap': [],
             'worst_group_cov': [],
-            'worst_high_label_cov_gap': [],
             'class_cov_gap': [],
             'avg_set_size': [],
             'marginal_cov': [],
@@ -259,8 +227,6 @@ def initialize_metrics_dict_fitzpatrick(methods):
 
 def aggregate_results_over_seeds(dataset_name, model_name, features_dir, results_dir, res_fname, ood_scores_dir, methods, score_fn, degree, num_bins_conf=10, num_bins_ood=4, num_seeds=10, alpha=0.1, log_trust=False): 
     
-    print("dataset: ", dataset_name, ", score_fn: ", score_fn, ", degree: ", degree)
-
     # load precomputed features
     test_features, test_labels, test_logits = load_precomputed_features(features_dir, dataset_name, model_name, split='test')
     calib_features, calib_labels, calib_logits = None, None, None
@@ -315,12 +281,6 @@ def aggregate_results_over_seeds(dataset_name, model_name, features_dir, results
                 metrics_dict[method]['avg_set_size'].append(compute_avg_set_size(set_sizes))
                 metrics_dict[method]['marginal_cov'].append(np.mean(coverages))
 
-                metrics_dict[method]['set_size_top1_acc_auc'].append(compute_size_acc_auc(set_sizes, compute_acc_array_topk(test_logits, test_labels, k=1)))
-                metrics_dict[method]['set_size_top2_acc_auc'].append(compute_size_acc_auc(set_sizes, compute_acc_array_topk(test_logits, test_labels, k=5)))
-                metrics_dict[method]['set_size_top3_acc_auc'].append(compute_size_acc_auc(set_sizes, compute_acc_array_topk(test_logits, test_labels, k=10)))
-                metrics_dict[method]['set_size_top4_acc_auc'].append(compute_size_acc_auc(set_sizes, compute_acc_array_topk(test_logits, test_labels, k=15)))
-                metrics_dict[method]['set_size_top5_acc_auc'].append(compute_size_acc_auc(set_sizes, compute_acc_array_topk(test_logits, test_labels, k=20)))
-
             elif method == 'conditional': 
                 res_fname_degree = res_fname_seed + f'_degree_{degree}'
                 coverages = np.load(os.path.join(results_dir, f"{res_fname_degree}_coverages_cond.npy"))
@@ -331,12 +291,6 @@ def aggregate_results_over_seeds(dataset_name, model_name, features_dir, results
                 metrics_dict[method]['class_cov_gap'].append(compute_class_cond_coverage_gap(coverages, test_labels))
                 metrics_dict[method]['avg_set_size'].append(compute_avg_set_size(set_sizes))
                 metrics_dict[method]['marginal_cov'].append(np.mean(coverages))
-
-                metrics_dict[method]['set_size_top1_acc_auc'].append(compute_size_acc_auc(set_sizes, compute_acc_array_topk(test_logits, test_labels, k=1)))
-                metrics_dict[method]['set_size_top2_acc_auc'].append(compute_size_acc_auc(set_sizes, compute_acc_array_topk(test_logits, test_labels, k=5)))
-                metrics_dict[method]['set_size_top3_acc_auc'].append(compute_size_acc_auc(set_sizes, compute_acc_array_topk(test_logits, test_labels, k=10)))
-                metrics_dict[method]['set_size_top4_acc_auc'].append(compute_size_acc_auc(set_sizes, compute_acc_array_topk(test_logits, test_labels, k=15)))
-                metrics_dict[method]['set_size_top5_acc_auc'].append(compute_size_acc_auc(set_sizes, compute_acc_array_topk(test_logits, test_labels, k=20)))
 
             elif method == 'naive':
                 calib_confidence = softmax(calib_logits, axis=1)
@@ -352,12 +306,6 @@ def aggregate_results_over_seeds(dataset_name, model_name, features_dir, results
                 metrics_dict[method]['class_cov_gap'].append(compute_class_cond_coverage_gap(coverages, test_labels))
                 metrics_dict[method]['avg_set_size'].append(compute_avg_set_size(set_sizes))
                 metrics_dict[method]['marginal_cov'].append(np.mean(coverages))
-
-                metrics_dict[method]['set_size_top1_acc_auc'].append(compute_size_acc_auc(set_sizes, compute_acc_array_topk(test_logits, test_labels, k=1)))
-                metrics_dict[method]['set_size_top2_acc_auc'].append(compute_size_acc_auc(set_sizes, compute_acc_array_topk(test_logits, test_labels, k=5)))
-                metrics_dict[method]['set_size_top3_acc_auc'].append(compute_size_acc_auc(set_sizes, compute_acc_array_topk(test_logits, test_labels, k=10)))
-                metrics_dict[method]['set_size_top4_acc_auc'].append(compute_size_acc_auc(set_sizes, compute_acc_array_topk(test_logits, test_labels, k=15)))
-                metrics_dict[method]['set_size_top5_acc_auc'].append(compute_size_acc_auc(set_sizes, compute_acc_array_topk(test_logits, test_labels, k=20)))
             
     # mean and std over seeds
     conf_trust_cov_gap_means = []
@@ -401,8 +349,6 @@ def aggregate_results_over_seeds(dataset_name, model_name, features_dir, results
 
 def aggregate_results_over_seeds_fitzpatrick(dataset_name, model_name, features_dir, results_dir, res_fname, ood_scores_dir, methods, score_fn, degree, num_bins_conf=1, num_bins_ood=7, num_seeds=10, alpha=0.1): 
     
-    print("dataset: ", dataset_name, ", score_fn: ", score_fn, ", degree: ", degree)
-
     # load precomputed features
     test_features, test_labels, test_logits = load_precomputed_features(features_dir, dataset_name, model_name, split='test')
     calib_features, calib_labels, calib_logits = None, None, None
@@ -439,7 +385,6 @@ def aggregate_results_over_seeds_fitzpatrick(dataset_name, model_name, features_
 
                 metrics_dict[method]['fitzpatrick_scale_cov_gap'].append(compute_coverage_gap(coverages, fitzpatrick_single_axis_subgrouping))
                 metrics_dict[method]['worst_group_cov'].append(compute_worst_coverage(coverages, fitzpatrick_single_axis_subgrouping))
-                metrics_dict[method]['worst_high_label_cov_gap'].append(compute_worst_coverage_gap_high_label(coverages, fitzpatrick_single_axis_subgrouping, test_labels_high))
                 metrics_dict[method]['class_cov_gap'].append(compute_class_cond_coverage_gap(coverages, test_labels))
                 metrics_dict[method]['avg_set_size'].append(compute_avg_set_size(set_sizes))
                 metrics_dict[method]['marginal_cov'].append(np.mean(coverages))
@@ -451,7 +396,6 @@ def aggregate_results_over_seeds_fitzpatrick(dataset_name, model_name, features_
 
                 metrics_dict[method]['fitzpatrick_scale_cov_gap'].append(compute_coverage_gap(coverages, fitzpatrick_single_axis_subgrouping))
                 metrics_dict[method]['worst_group_cov'].append(compute_worst_coverage(coverages, fitzpatrick_single_axis_subgrouping))
-                metrics_dict[method]['worst_high_label_cov_gap'].append(compute_worst_coverage_gap_high_label(coverages, fitzpatrick_single_axis_subgrouping, test_labels_high))
                 metrics_dict[method]['class_cov_gap'].append(compute_class_cond_coverage_gap(coverages, test_labels))
                 metrics_dict[method]['avg_set_size'].append(compute_avg_set_size(set_sizes))
                 metrics_dict[method]['marginal_cov'].append(np.mean(coverages))
@@ -465,7 +409,6 @@ def aggregate_results_over_seeds_fitzpatrick(dataset_name, model_name, features_
 
                 metrics_dict[method]['fitzpatrick_scale_cov_gap'].append(compute_coverage_gap(coverages, fitzpatrick_single_axis_subgrouping))
                 metrics_dict[method]['worst_group_cov'].append(compute_worst_coverage(coverages, fitzpatrick_single_axis_subgrouping))
-                metrics_dict[method]['worst_high_label_cov_gap'].append(compute_worst_coverage_gap_high_label(coverages, fitzpatrick_single_axis_subgrouping, test_labels_high))
                 metrics_dict[method]['class_cov_gap'].append(compute_class_cond_coverage_gap(coverages, test_labels))
                 metrics_dict[method]['avg_set_size'].append(compute_avg_set_size(set_sizes))
                 metrics_dict[method]['marginal_cov'].append(np.mean(coverages))
@@ -475,8 +418,6 @@ def aggregate_results_over_seeds_fitzpatrick(dataset_name, model_name, features_
     fitzpatrick_scale_cov_gap_ses = []
     worst_group_cov_means = []
     worst_group_cov_ses = []
-    worst_high_label_cov_gap_means = []
-    worst_high_label_cov_gap_ses = []
     class_cov_gap_means = []
     class_cov_gap_ses = []
     avg_size_means = []
@@ -489,8 +430,6 @@ def aggregate_results_over_seeds_fitzpatrick(dataset_name, model_name, features_
         fitzpatrick_scale_cov_gap_ses.append(np.std(metrics_dict[method]['fitzpatrick_scale_cov_gap']) / np.sqrt(num_seeds))
         worst_group_cov_means.append(np.mean(metrics_dict[method]['worst_group_cov']))
         worst_group_cov_ses.append(np.std(metrics_dict[method]['worst_group_cov']) / np.sqrt(num_seeds))
-        worst_high_label_cov_gap_means.append(np.mean(metrics_dict[method]['worst_high_label_cov_gap']))
-        worst_high_label_cov_gap_ses.append(np.std(metrics_dict[method]['worst_high_label_cov_gap']) / np.sqrt(num_seeds))
         class_cov_gap_means.append(np.mean(metrics_dict[method]['class_cov_gap']))
         class_cov_gap_ses.append(np.std(metrics_dict[method]['class_cov_gap']) / np.sqrt(num_seeds))
         avg_size_means.append(np.mean(metrics_dict[method]['avg_set_size']))
@@ -504,8 +443,6 @@ def aggregate_results_over_seeds_fitzpatrick(dataset_name, model_name, features_
         'fitzpatrick_scale_cov_gap_se': fitzpatrick_scale_cov_gap_ses,
         'worst_group_cov_mean': worst_group_cov_means,
         'worst_group_cov_se': worst_group_cov_ses,
-        'worst_high_label_cov_gap_mean': worst_high_label_cov_gap_means,
-        'worst_high_label_cov_gap_se': worst_high_label_cov_gap_ses,
         'class_cov_gap_mean': class_cov_gap_means,
         'class_cov_gap_se': class_cov_gap_ses,
         'avg_size_mean': avg_size_means,
@@ -605,7 +542,6 @@ def find_neighbor_regions(dataset_name, model_name, features_dir, results_dir, r
     for method in methods:
         metrics_dict[method] = {
             'region_cov_gap': [],
-            'worst_region_cov': [],
         } 
 
     # load precomputed features
@@ -677,7 +613,6 @@ def find_neighbor_regions(dataset_name, model_name, features_dir, results_dir, r
                 set_sizes = np.load(os.path.join(results_dir, f"{res_fname_seed}_set_sizes_split.npy"))
 
                 metrics_dict[method]['region_cov_gap'].append(compute_coverage_gap_regions(coverages, euclidean_balls))
-                metrics_dict[method]['worst_region_cov'].append(compute_worst_coverage_regions(coverages, euclidean_balls))
 
             elif method == 'conditional': 
                 res_fname_degree = res_fname_seed + f'_degree_{degree}'
@@ -685,7 +620,6 @@ def find_neighbor_regions(dataset_name, model_name, features_dir, results_dir, r
                 set_sizes = np.load(os.path.join(results_dir, f"{res_fname_degree}_set_sizes_cond.npy"))
 
                 metrics_dict[method]['region_cov_gap'].append(compute_coverage_gap_regions(coverages, euclidean_balls))
-                metrics_dict[method]['worst_region_cov'].append(compute_worst_coverage_regions(coverages, euclidean_balls))
 
             elif method == 'naive':
                 calib_confidence = softmax(calib_logits, axis=1)
@@ -697,26 +631,19 @@ def find_neighbor_regions(dataset_name, model_name, features_dir, results_dir, r
                 coverages, set_sizes = compute_naive_sets(test_scores, test_scores_cumsum_ordered, conf_ood_subgrouping, binwise_qhat)
 
                 metrics_dict[method]['region_cov_gap'].append(compute_coverage_gap_regions(coverages, euclidean_balls))
-                metrics_dict[method]['worst_region_cov'].append(compute_worst_coverage_regions(coverages, euclidean_balls))
 
     # mean and std over seeds
     region_cov_gap_means = []
     region_cov_gap_ses = []
-    worst_region_cov_means = []
-    worst_region_cov_ses = []
 
     for method in methods:
         region_cov_gap_means.append(np.mean(metrics_dict[method]['region_cov_gap']))
         region_cov_gap_ses.append(np.std(metrics_dict[method]['region_cov_gap']) / np.sqrt(num_trials))
-        worst_region_cov_means.append(np.mean(metrics_dict[method]['worst_region_cov']))
-        worst_region_cov_ses.append(np.std(metrics_dict[method]['worst_region_cov']) / np.sqrt(num_trials))
 
     df = pd.DataFrame({
         'method': methods,
         'region_cov_gap_mean': region_cov_gap_means,
         'region_cov_gap_se': region_cov_gap_ses,
-        'worst_region_cov_mean': worst_region_cov_means,
-        'worst_region_cov_se': worst_region_cov_ses
     })
 
     return df
@@ -731,7 +658,6 @@ def find_neighbor_regions_radii(dataset_name, model_name, features_dir, results_
     for method in methods:
         metrics_dict[method] = {
             'region_cov_gap': [],
-            'worst_region_cov': [],
         } 
 
     # load precomputed features
@@ -804,7 +730,6 @@ def find_neighbor_regions_radii(dataset_name, model_name, features_dir, results_
                 set_sizes = np.load(os.path.join(results_dir, f"{res_fname_seed}_set_sizes_split.npy"))
 
                 metrics_dict[method]['region_cov_gap'].append(compute_coverage_gap_regions(coverages, euclidean_balls))
-                metrics_dict[method]['worst_region_cov'].append(compute_worst_coverage_regions(coverages, euclidean_balls))
 
             elif method == 'conditional': 
                 res_fname_degree = res_fname_seed + f'_degree_{degree}'
@@ -812,7 +737,6 @@ def find_neighbor_regions_radii(dataset_name, model_name, features_dir, results_
                 set_sizes = np.load(os.path.join(results_dir, f"{res_fname_degree}_set_sizes_cond.npy"))
 
                 metrics_dict[method]['region_cov_gap'].append(compute_coverage_gap_regions(coverages, euclidean_balls))
-                metrics_dict[method]['worst_region_cov'].append(compute_worst_coverage_regions(coverages, euclidean_balls))
 
             elif method == 'naive':
                 calib_confidence = softmax(calib_logits, axis=1)
@@ -824,26 +748,19 @@ def find_neighbor_regions_radii(dataset_name, model_name, features_dir, results_
                 coverages, set_sizes = compute_naive_sets(test_scores, test_scores_cumsum_ordered, conf_ood_subgrouping, binwise_qhat)
 
                 metrics_dict[method]['region_cov_gap'].append(compute_coverage_gap_regions(coverages, euclidean_balls))
-                metrics_dict[method]['worst_region_cov'].append(compute_worst_coverage_regions(coverages, euclidean_balls))
 
     # mean and std over seeds
     region_cov_gap_means = []
     region_cov_gap_ses = []
-    worst_region_cov_means = []
-    worst_region_cov_ses = []
 
     for method in methods:
         region_cov_gap_means.append(np.mean(metrics_dict[method]['region_cov_gap']))
         region_cov_gap_ses.append(np.std(metrics_dict[method]['region_cov_gap']) / np.sqrt(num_trials))
-        worst_region_cov_means.append(np.mean(metrics_dict[method]['worst_region_cov']))
-        worst_region_cov_ses.append(np.std(metrics_dict[method]['worst_region_cov']) / np.sqrt(num_trials))
 
     df = pd.DataFrame({
         'method': methods,
         'region_cov_gap_mean': region_cov_gap_means,
         'region_cov_gap_se': region_cov_gap_ses,
-        'worst_region_cov_mean': worst_region_cov_means,
-        'worst_region_cov_se': worst_region_cov_ses
     })
 
     return df

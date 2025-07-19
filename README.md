@@ -12,7 +12,7 @@ conda activate conformal-trust
 
 ### Downloading Data
 
-Please download the datasets from original sources and store in `data/` folder. This should point to the `train/` and `val/` folders for ImageNet and `places365/` for the Places dataset.
+Please download the datasets from original sources and store in `data/` folder. This should point to the `train/` and `val/` folders for ImageNet and `places365/` for the Places dataset. When you run the code (`run_condconf.py`) for the first time, pre-trained models are downloaded and loaded, and features are extracted for the training and test sets.
 
 ### Computing Trust scores
 
@@ -20,7 +20,7 @@ We compute `trust_score` using the code provided by the original paper (https://
 ```
 bash download_trust_scores.sh
 ```
-This will create a `trust_scores` folder and download the trust scores for all datasets. To generate the trust scores from scratch, you can run  `experiments/compute_trust_scores.sh`.
+This will create a `trust_scores` folder and download the trust scores for all datasets. To generate the trust scores from scratch, you can run  `utils/compute_trust_scores.sh`.
 
 ## Reproducing Results
 
@@ -28,9 +28,11 @@ We provide `run_condconf.sh` which is the script for running all experiments. Th
 
 ### Evaluation
 
-We provide `evaluation.ipynb` notebook that provides the code to aggregate results over all seeds and methods.
+We provide `evaluation.ipynb` notebook in `notebooks/` that provides the code to aggregate results over all seeds and methods.
 
-## Custom Function Class [WIP]
+## Custom Function Class 
+
+We provide `conditional_custom_function_class.ipynb` in `notebooks/` to easily use the conditional conformal prediction algorithm for any custom function class you define. Refer to the notebook for simple instructions on how to define your function class and run the algorithm.
 
 ### Citing this work
 

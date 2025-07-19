@@ -11,9 +11,12 @@
 """
 Functions for computing conformity scores
 """
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 import numpy as np
-from temperature_scaling import torch_ts
+from utils.temperature_scaling import torch_ts
 
 def softmax(x):
     ex = np.exp(x - np.max(x))

@@ -4,5 +4,6 @@ python run_condconf.py \
     --dataset_name imagenet_lt \
     --model_name resnext50_imagenet_lt \
     --seed $SEED \
+    --temp_scaling \
     --score_fn aps
 done

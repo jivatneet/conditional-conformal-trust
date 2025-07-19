@@ -14,7 +14,7 @@ from scipy.special import softmax
 
 parser = ArgumentParser()
 parser.add_argument("--dataset_name", type=str, default="imagenet")
-parser.add_argument("--features_dir", type=str, default="/path/to/features")
+parser.add_argument("--features_dir", type=str, default="../features")
 parser.add_argument("--normalize", type=bool, default=True)
 parser.add_argument("--num_neighbors", type=int, default=10)
 parser.add_argument("--distance_measure", type=str, default="L2")

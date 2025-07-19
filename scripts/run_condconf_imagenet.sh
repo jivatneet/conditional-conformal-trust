@@ -4,5 +4,6 @@ python run_condconf.py \
     --dataset_name imagenet \
     --model_name resnet50 \
     --seed $SEED \
+    --temp_scaling \
     --score_fn aps
 done
