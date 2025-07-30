@@ -82,13 +82,13 @@ def compute_conformity_score_aps(calib_logits, test_logits, calib_labels, test_l
     cal_srt = np.take_along_axis(cal_smx, cal_pi, axis=1)
     cal_srt_reg = cal_srt 
     cal_L = np.where(cal_pi == calib_labels[:, None])[1]
-    cal_scores = cal_srt_reg.cumsum(axis=1)[np.arange(n), cal_L] - np.random.rand(n)*cal_srt_reg[np.arange(n), cal_L] if rand else (cal_srt_reg.cumsum(axis=1)[np.arange(n), cal_L]) # - cal_srt_reg[np.arange(n), cal_L])
+    cal_scores = cal_srt_reg.cumsum(axis=1)[np.arange(n), cal_L] - np.random.rand(n)*cal_srt_reg[np.arange(n), cal_L] if rand else (cal_srt_reg.cumsum(axis=1)[np.arange(n), cal_L]  - cal_srt_reg[np.arange(n), cal_L])
 
     n_test = test_smx.shape[0]
     test_pi = test_smx.argsort(1)[:,::-1]
     test_srt = np.take_along_axis(test_smx, test_pi, axis=1)
     test_srt_reg = test_srt 
-    test_scores_cumsum_intermed = (test_srt_reg.cumsum(axis=1) - np.random.rand(n_test, 1)*test_srt_reg) if rand else (test_srt_reg.cumsum(axis=1)) # - test_srt_reg) 
+    test_scores_cumsum_intermed = (test_srt_reg.cumsum(axis=1) - np.random.rand(n_test, 1)*test_srt_reg) if rand else (test_srt_reg.cumsum(axis=1)  - test_srt_reg) 
     test_L = np.where(test_pi == test_labels[:, None])[1]
     test_scores = test_scores_cumsum_intermed[np.arange(n_test), test_L] 
     
